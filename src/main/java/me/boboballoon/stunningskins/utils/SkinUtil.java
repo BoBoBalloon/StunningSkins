@@ -154,7 +154,11 @@ public class SkinUtil {
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
         Gson gson = new GsonBuilder().create();
-        return gson.fromJson(reader, JsonObject.class);
+
+        JsonObject returnValue = gson.fromJson(reader, JsonObject.class);
+
+        inputStream.close();
+        return returnValue;
     }
 
     private static JsonElement getJson(URL url, Gson gson) throws IOException {
@@ -162,7 +166,10 @@ public class SkinUtil {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
-        return gson.fromJson(reader, JsonObject.class);
+        JsonObject returnValue = gson.fromJson(reader, JsonObject.class);
+
+        inputStream.close();
+        return returnValue;
     }
 
     private static void reloadPlayer(Player player) {
