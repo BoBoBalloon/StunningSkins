@@ -113,7 +113,9 @@ public class SkinUtil {
         Property oldSkinData = propertyMap.get("textures").iterator().next();
         Property skinData = targeted.getProfile().getProperties().get("textures").iterator().next();
 
-        SKINNED_PLAYERS.put(target.getUniqueId(), oldSkinData);
+        if (!SKINNED_PLAYERS.containsKey(target.getUniqueId())) {
+            SKINNED_PLAYERS.put(target.getUniqueId(), oldSkinData);
+        }
         propertyMap.remove("textures", oldSkinData);
         propertyMap.put("textures", skinData);
 
@@ -189,7 +191,7 @@ public class SkinUtil {
 
         PacketPlayOutRespawn respawn = new PacketPlayOutRespawn(craftPlayer.world.getDimensionManager(), craftPlayer.getWorld().getDimensionKey(), craftPlayer.getWorldServer().getSeed(), craftPlayer.playerInteractManager.getGameMode(), craftPlayer.playerInteractManager.getGameMode(), false, false, true);
 
-        player.teleport(new Location(Bukkit.getWorld("world"), 0, 1000, 0)); //test what happends when its just world "world_the_end"
+        player.teleport(new Location(Bukkit.getWorld("world"), 0, 1000, 0));
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             craftPlayer.playerConnection.sendPacket(respawn);
             player.teleport(location);
