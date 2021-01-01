@@ -2,3 +2,9 @@ name: StunningSkins
 version: ${project.version}
 main: me.boboballoon.stunningskins.StunningSkins
 api-version: 1.16
+
+commands:
+  setskin:
+    description: set your skin to another players
+  resetskin:
+    description: set your skin to its original state
