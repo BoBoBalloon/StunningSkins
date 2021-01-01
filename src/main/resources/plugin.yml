@@ -8,3 +8,8 @@ commands:
     description: set your skin to another players
   resetskin:
     description: set your skin to its original state
+
+permissions:
+  stunningskins.setskin:
+    description: allow player to use /setskin and /resetskin
+    default: op

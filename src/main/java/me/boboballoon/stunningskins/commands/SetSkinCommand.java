@@ -19,6 +19,11 @@ public class SetSkinCommand implements CommandExecutor {
 
         Player player = (Player) sender;
 
+        if (!player.hasPermission("stunningskins.setskin")) {
+            player.sendMessage(TextUtil.format("&r&cYou do not have permission to execute this command!"));
+            return false;
+        }
+
         if (args.length != 1) {
             player.sendMessage(TextUtil.format("&r&cYou have entered improper arguments to execute this command!"));
             return false;
