@@ -145,6 +145,8 @@ public class SkinUtil {
         propertyMap.remove("textures", oldSkinData);
         propertyMap.put("textures", skinData);
 
+        SKINNED_PLAYERS.remove(uuid);
+
         reloadPlayer(target);
 
         return true;
