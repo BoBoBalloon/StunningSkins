@@ -39,15 +39,13 @@ public class SkinUtil {
         try {
             url = new URL("https://api.mojang.com/users/profiles/minecraft/" + username + "?at=" + (System.currentTimeMillis() / 1000));
         } catch (MalformedURLException e) {
-            e.printStackTrace(); //remove
             return false;
         }
 
         JsonObject player;
         try {
             player = getJson(url).getAsJsonObject();
-        } catch (IOException e) { // | ParseException e
-            e.printStackTrace(); //remove
+        } catch (IOException e) {
             return false;
         }
 
@@ -66,7 +64,6 @@ public class SkinUtil {
         try {
             url = new URL("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString() + "?unsigned=false");
         } catch (MalformedURLException e) {
-            e.printStackTrace(); //remove
             return false;
         }
 
@@ -75,7 +72,6 @@ public class SkinUtil {
         try {
             properties = getJson(url, gson).getAsJsonObject().get("properties");
         } catch (IOException e) {
-            e.printStackTrace(); //remove
             return false;
         }
 
