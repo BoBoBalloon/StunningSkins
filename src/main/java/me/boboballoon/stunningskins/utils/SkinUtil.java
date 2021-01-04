@@ -1,6 +1,9 @@
 package me.boboballoon.stunningskins.utils;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
@@ -9,7 +12,6 @@ import net.minecraft.server.v1_16_R3.EntityPlayer;
 import net.minecraft.server.v1_16_R3.PacketPlayOutPlayerInfo;
 import net.minecraft.server.v1_16_R3.PacketPlayOutRespawn;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -182,18 +184,13 @@ public class SkinUtil {
 
         PacketPlayOutPlayerInfo removeInfo = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.REMOVE_PLAYER, craftPlayer);
         PacketPlayOutPlayerInfo addInfo = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, craftPlayer);
-        Location location = player.getLocation().clone();
 
         craftPlayer.playerConnection.sendPacket(removeInfo);
         craftPlayer.playerConnection.sendPacket(addInfo);
 
         PacketPlayOutRespawn respawn = new PacketPlayOutRespawn(craftPlayer.world.getDimensionManager(), craftPlayer.getWorld().getDimensionKey(), craftPlayer.getWorldServer().getSeed(), craftPlayer.playerInteractManager.getGameMode(), craftPlayer.playerInteractManager.getGameMode(), false, false, true);
 
-        player.teleport(new Location(Bukkit.getWorld("world"), 0, 1000, 0));
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            craftPlayer.playerConnection.sendPacket(respawn);
-            player.teleport(location);
-        }, 2L);
+        craftPlayer.playerConnection.sendPacket(respawn);
     }
 
     /*
