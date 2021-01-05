@@ -13,6 +13,6 @@ public class PlayerQuitListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         SkinUtil.SKINNED_PLAYERS.remove(player.getUniqueId());
-        NameUtil.unNamePlayer(player);
+        NameUtil.unNamePlayerUnsafe(player);
     }
 }
