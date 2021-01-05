@@ -30,7 +30,7 @@ public class SkinUtil {
     public static Map<UUID, Property> SKINNED_PLAYERS = new HashMap<>();
 
     /**
-     * A method used to set the skin of a player using another players username as a method of retrieving a skin
+     * A method used to set the skin of a player using another players username as a method of retrieving a skin (always fire async)
      *
      * @param target   the player whose skin you're trying to change
      * @param username the username of the player whose skin you're trying to set the targets skin to
@@ -55,7 +55,7 @@ public class SkinUtil {
     }
 
     /**
-     * A method used to set the skin of a player using another players uuid as a method of retrieving a skin
+     * A method used to set the skin of a player using another players uuid as a method of retrieving a skin (always fire async)
      *
      * @param target the player whose skin you're trying to change
      * @param uuid   the uuid of the player whose skin you're trying to set the targets skin to
@@ -97,7 +97,7 @@ public class SkinUtil {
     }
 
     /**
-     * A method used to set the skin of a player using another player as a method of retrieving a skin
+     * A method used to set the skin of a player using another player as a method of retrieving a skin (always fire async)
      *
      * @param target the player whose skin you're trying to change
      * @param skin   the player whose skin you're trying to set the targets skin to
@@ -123,7 +123,7 @@ public class SkinUtil {
     }
 
     /**
-     * A method used to restore the skin of a player who has already changed their skin
+     * A method used to restore the skin of a player who has already changed their skin (always fire async)
      *
      * @param target the player who you're trying to restore their original skin
      * @return a boolean that is true when the players skin was restored successfully, false when an internal error occurred
@@ -177,8 +177,10 @@ public class SkinUtil {
     private static void reloadPlayer(Player player) {
         Plugin plugin = StunningSkins.getInstance();
         for (Player current : Bukkit.getOnlinePlayers()) {
-            current.hidePlayer(plugin, player);
-            current.showPlayer(plugin, player);
+            Bukkit.getScheduler().runTask(StunningSkins.getInstance(), () -> {
+                current.hidePlayer(plugin, player);
+                current.showPlayer(plugin, player);
+            });
         }
         EntityPlayer craftPlayer = ((CraftPlayer) player).getHandle();
 
