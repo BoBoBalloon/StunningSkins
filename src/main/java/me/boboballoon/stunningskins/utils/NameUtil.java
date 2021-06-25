@@ -1,21 +1,19 @@
 package me.boboballoon.stunningskins.utils;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.server.v1_16_R3.EntityPlayer;
-import net.minecraft.server.v1_16_R3.PacketPlayOutEntityDestroy;
-import net.minecraft.server.v1_16_R3.PacketPlayOutNamedEntitySpawn;
-import net.minecraft.server.v1_16_R3.PacketPlayOutPlayerInfo;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class NameUtil {
+public final class NameUtil {
     public static Map<UUID, String> NICKED_PLAYERS = new HashMap<>();
+
+    private NameUtil() {}
 
     /**
      * A method to change a player's name (always fire async)
@@ -35,9 +33,24 @@ public class NameUtil {
             }
         }
 
-        EntityPlayer player = ((CraftPlayer) target).getHandle();
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
 
-        PacketPlayOutPlayerInfo subtract = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.REMOVE_PLAYER, player);
+        Class<?> packetPlayOutPlayerInfo = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo");
+        Class<?> enumPlayerInfoAction = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction");
+
+        Object removePlayerField;
+        try {
+            removePlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "REMOVE_PLAYER").get(null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        Object playerArray = Array.newInstance(player.getClass(), 1);
+        Array.set(playerArray, 0, player);
+
+        Object subtract = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, removePlayerField, playerArray);
 
         if (!NICKED_PLAYERS.containsKey(target.getUniqueId())) {
             NICKED_PLAYERS.put(target.getUniqueId(), target.getName());
@@ -51,7 +64,7 @@ public class NameUtil {
             return false;
         }
 
-        GameProfile playerProfile = player.getProfile();
+        GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
 
         field.setAccessible(true);
         try {
@@ -60,9 +73,23 @@ public class NameUtil {
             return false;
         }
 
-        PacketPlayOutPlayerInfo add = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, player);
-        PacketPlayOutEntityDestroy remove = new PacketPlayOutEntityDestroy(player.getId());
-        PacketPlayOutNamedEntitySpawn spawn = new PacketPlayOutNamedEntitySpawn(player);
+        Object addPlayerField;
+        try {
+            addPlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "ADD_PLAYER").get(null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        Object add = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, addPlayerField, playerArray);
+        //PacketPlayOutPlayerInfo add = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, player);
+
+        Object playerID = ReflectionUtil.getFieldFromObject(player, "getId");
+        Object remove = ReflectionUtil.newInstanceFromClass("net.minecraft.server.{NMS}.PacketPlayOutEntityDestroy", playerID);
+        //PacketPlayOutEntityDestroy remove = new PacketPlayOutEntityDestroy(player.getId());
+
+        Object spawn = ReflectionUtil.newInstanceFromClass("net.minecraft.server.{NMS}.PacketPlayOutNamedEntitySpawn", player);
+        //PacketPlayOutNamedEntitySpawn spawn = new PacketPlayOutNamedEntitySpawn(player);
 
         reloadPlayer(target, subtract, add, remove, spawn);
 
@@ -80,9 +107,26 @@ public class NameUtil {
             return false;
         }
 
-        EntityPlayer player = ((CraftPlayer) target).getHandle();
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
 
-        PacketPlayOutPlayerInfo subtract = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.REMOVE_PLAYER, player);
+        Class<?> packetPlayOutPlayerInfo = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo");
+        Class<?> enumPlayerInfoAction = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction");
+
+        Object removePlayerField;
+        try {
+            removePlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "REMOVE_PLAYER").get(null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        Object playerArray = Array.newInstance(player.getClass(), 1);
+        Array.set(playerArray, 0, player);
+
+        Object subtract = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, removePlayerField, playerArray);
+
+        //PacketPlayOutPlayerInfo subtract = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.REMOVE_PLAYER, player);
 
         Class<GameProfile> gameProfile = GameProfile.class;
         Field field;
@@ -92,7 +136,7 @@ public class NameUtil {
             return false;
         }
 
-        GameProfile playerProfile = player.getProfile();
+        GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
 
         field.setAccessible(true);
         try {
@@ -101,9 +145,23 @@ public class NameUtil {
             return false;
         }
 
-        PacketPlayOutPlayerInfo add = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, player);
-        PacketPlayOutEntityDestroy remove = new PacketPlayOutEntityDestroy(player.getId());
-        PacketPlayOutNamedEntitySpawn spawn = new PacketPlayOutNamedEntitySpawn(player);
+        Object addPlayerField;
+        try {
+            addPlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "ADD_PLAYER").get(null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        Object add = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, addPlayerField, playerArray);
+        //PacketPlayOutPlayerInfo add = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, player);
+
+        Object playerID = ReflectionUtil.getFieldFromObject(player, "getId");
+        Object remove = ReflectionUtil.newInstanceFromClass("net.minecraft.server.{NMS}.PacketPlayOutEntityDestroy", playerID);
+        //PacketPlayOutEntityDestroy remove = new PacketPlayOutEntityDestroy(player.getId());
+
+        Object spawn = ReflectionUtil.newInstanceFromClass("net.minecraft.server.{NMS}.PacketPlayOutNamedEntitySpawn", player);
+        //PacketPlayOutNamedEntitySpawn spawn = new PacketPlayOutNamedEntitySpawn(player);
 
         reloadPlayer(target, subtract, add, remove, spawn);
 
@@ -122,7 +180,8 @@ public class NameUtil {
             return;
         }
 
-        EntityPlayer player = ((CraftPlayer) target).getHandle();
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
 
         Class<GameProfile> gameProfile = GameProfile.class;
         Field field;
@@ -132,7 +191,7 @@ public class NameUtil {
             return;
         }
 
-        GameProfile playerProfile = player.getProfile();
+        GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
 
         field.setAccessible(true);
         try {
@@ -144,16 +203,20 @@ public class NameUtil {
         NICKED_PLAYERS.remove(target.getUniqueId());
     }
 
-    private static void reloadPlayer(Player target, PacketPlayOutPlayerInfo subtract, PacketPlayOutPlayerInfo add, PacketPlayOutEntityDestroy remove, PacketPlayOutNamedEntitySpawn spawn) {
+    private static void reloadPlayer(Player target, Object subtract, Object add, Object remove, Object spawn) {
         for (Player online : Bukkit.getOnlinePlayers()) {
-            EntityPlayer onlinePlayer = ((CraftPlayer) online).getHandle();
-            onlinePlayer.playerConnection.sendPacket(subtract);
-            onlinePlayer.playerConnection.sendPacket(add);
+            Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(online);
+            Object onlinePlayer = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
+
+            Object playerConnection = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerConnection");
+
+            ReflectionUtil.executeMethod(playerConnection, "sendPacket", subtract);
+            ReflectionUtil.executeMethod(playerConnection, "sendPacket", add);
             if (online == target) {
                 continue;
             }
-            onlinePlayer.playerConnection.sendPacket(remove);
-            onlinePlayer.playerConnection.sendPacket(spawn);
+            ReflectionUtil.executeMethod(playerConnection, "sendPacket", remove);
+            ReflectionUtil.executeMethod(playerConnection, "sendPacket", spawn);
         }
     }
 }

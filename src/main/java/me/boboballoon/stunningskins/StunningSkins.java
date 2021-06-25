@@ -6,6 +6,7 @@ import me.boboballoon.stunningskins.commands.SetNameCommand;
 import me.boboballoon.stunningskins.commands.SetSkinCommand;
 import me.boboballoon.stunningskins.listeners.PlayerQuitListener;
 import me.boboballoon.stunningskins.utils.NameUtil;
+import net.minecraft.server.v1_16_R3.PacketPlayOutPlayerInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;

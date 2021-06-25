@@ -9,10 +9,7 @@ import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import me.boboballoon.stunningskins.StunningSkins;
 import net.minecraft.server.v1_16_R3.EntityPlayer;
-import net.minecraft.server.v1_16_R3.PacketPlayOutPlayerInfo;
-import net.minecraft.server.v1_16_R3.PacketPlayOutRespawn;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_16_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -20,14 +17,17 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class SkinUtil {
+public final class SkinUtil {
     public static Map<UUID, Property> SKINNED_PLAYERS = new HashMap<>();
+
+    private SkinUtil() {}
 
     /**
      * A method used to set the skin of a player using another players username as a method of retrieving a skin (always fire async)
@@ -79,9 +79,11 @@ public class SkinUtil {
 
         Property skinData = gson.fromJson(String.valueOf(properties), Property[].class)[0];
 
-        EntityPlayer player = ((CraftPlayer) target).getHandle();
-        GameProfile profile = player.getProfile();
-        PropertyMap propertyMap = profile.getProperties();
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
+
+        GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
+        PropertyMap propertyMap = playerProfile.getProperties();
 
         Property oldSkinData = propertyMap.get("textures").iterator().next();
 
@@ -104,12 +106,18 @@ public class SkinUtil {
      * @return a boolean that is true when the players skin was set successfully, false when an internal error occurred
      */
     public static boolean changeSkin(Player target, Player skin) {
-        EntityPlayer player = ((CraftPlayer) target).getHandle();
-        EntityPlayer targeted = ((CraftPlayer) skin).getHandle();
-        PropertyMap propertyMap = player.getProfile().getProperties();
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
+        GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
+
+        Object craftTargeted = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object targeted = ReflectionUtil.executeMethod(craftTargeted, "getHandle");
+        GameProfile targetProfile = (GameProfile) ReflectionUtil.executeMethod(targeted, "getProfile");
+
+        PropertyMap propertyMap = playerProfile.getProperties();
 
         Property oldSkinData = propertyMap.get("textures").iterator().next();
-        Property skinData = targeted.getProfile().getProperties().get("textures").iterator().next();
+        Property skinData = targetProfile.getProperties().get("textures").iterator().next();
 
         if (!SKINNED_PLAYERS.containsKey(target.getUniqueId())) {
             SKINNED_PLAYERS.put(target.getUniqueId(), oldSkinData);
@@ -134,8 +142,10 @@ public class SkinUtil {
             return false;
         }
 
-        EntityPlayer player = ((CraftPlayer)target).getHandle();
-        PropertyMap propertyMap = player.getProfile().getProperties();
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
+        GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
+        PropertyMap propertyMap = playerProfile.getProperties();
 
         Property oldSkinData = propertyMap.get("textures").iterator().next();
         Property skinData = SKINNED_PLAYERS.get(uuid);
@@ -176,23 +186,63 @@ public class SkinUtil {
 
     private static void reloadPlayer(Player player) {
         Plugin plugin = StunningSkins.getInstance();
-        for (Player current : Bukkit.getOnlinePlayers()) {
-            Bukkit.getScheduler().runTask(StunningSkins.getInstance(), () -> {
+        Bukkit.getScheduler().runTask(StunningSkins.getInstance(), () -> {
+            for (Player current : Bukkit.getOnlinePlayers()) {
                 current.hidePlayer(plugin, player);
                 current.showPlayer(plugin, player);
-            });
+            }
+        });
+
+        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(player);
+        Object onlinePlayer = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
+        Object playerConnection = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerConnection");
+
+        Class<?> packetPlayOutPlayerInfo = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo");
+        Class<?> enumPlayerInfoAction = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction");
+
+        Object removePlayerField;
+        try {
+            removePlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "REMOVE_PLAYER").get(null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return;
         }
-        EntityPlayer craftPlayer = ((CraftPlayer) player).getHandle();
 
-        PacketPlayOutPlayerInfo removeInfo = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.REMOVE_PLAYER, craftPlayer);
-        PacketPlayOutPlayerInfo addInfo = new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.ADD_PLAYER, craftPlayer);
+        Object playerArray = Array.newInstance(onlinePlayer.getClass(), 1);
+        Array.set(playerArray, 0, onlinePlayer);
 
-        craftPlayer.playerConnection.sendPacket(removeInfo);
-        craftPlayer.playerConnection.sendPacket(addInfo);
+        Object subtract = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, removePlayerField, playerArray);
 
-        PacketPlayOutRespawn respawn = new PacketPlayOutRespawn(craftPlayer.world.getDimensionManager(), craftPlayer.getWorld().getDimensionKey(), craftPlayer.getWorldServer().getSeed(), craftPlayer.playerInteractManager.getGameMode(), craftPlayer.playerInteractManager.getGameMode(), false, false, true);
+        Object addPlayerField;
+        try {
+            addPlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "ADD_PLAYER").get(null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+            return;
+        }
 
-        craftPlayer.playerConnection.sendPacket(respawn);
+        Object add = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, addPlayerField, playerArray);
+
+        Class<?> packetClass = ReflectionUtil.getClass("net.minecraft.server.{NMS}.Packet");
+
+        ReflectionUtil.executeMethod(playerConnection, "sendPacket", packetClass.cast(subtract));
+        ReflectionUtil.executeMethod(playerConnection, "sendPacket", packetClass.cast(add));
+
+        Object worldField = ReflectionUtil.getFieldFromObject(onlinePlayer, "world");
+        Object dimensionManager = ReflectionUtil.executeMethod(worldField, "getDimensionManager");
+
+        Object getWorldMethod = ReflectionUtil.executeMethod(onlinePlayer, "getWorld");
+        Object getDimensionKeyMethod = ReflectionUtil.executeMethod(getWorldMethod, "getDimensionKey");
+
+        Object getWorldServerMethod = ReflectionUtil.executeMethod(onlinePlayer, "getWorldServer");
+        Object getSeedMethod = ReflectionUtil.executeMethod(getWorldServerMethod, "getSeed");
+
+        Object playerInteractManagerField = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerInteractManager");
+        Object getGamemodeMethod = ReflectionUtil.executeMethod(playerInteractManagerField, "getGameMode");
+
+        Object respawn = ReflectionUtil.newInstanceFromClass("net.minecraft.server.{NMS}.PacketPlayOutRespawn", dimensionManager, getDimensionKeyMethod, getSeedMethod, getGamemodeMethod, getGamemodeMethod, false, false, true);
+
+        ReflectionUtil.executeMethod(playerConnection, "sendPacket", packetClass.cast(respawn));
     }
 
     /*

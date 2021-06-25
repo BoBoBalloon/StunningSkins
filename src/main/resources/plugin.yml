@@ -1,7 +1,7 @@
 name: StunningSkins
 version: ${project.version}
 main: me.boboballoon.stunningskins.StunningSkins
-api-version: 1.16
+api-version: 1.14 #real version is 1.16
 
 commands:
   setskin:
