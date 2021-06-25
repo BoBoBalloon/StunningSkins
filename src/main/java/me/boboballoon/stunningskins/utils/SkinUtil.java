@@ -8,7 +8,6 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import me.boboballoon.stunningskins.StunningSkins;
-import net.minecraft.server.v1_16_R3.EntityPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -18,6 +17,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -110,7 +111,7 @@ public final class SkinUtil {
         Object player = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
         GameProfile playerProfile = (GameProfile) ReflectionUtil.executeMethod(player, "getProfile");
 
-        Object craftTargeted = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(target);
+        Object craftTargeted = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(skin);
         Object targeted = ReflectionUtil.executeMethod(craftTargeted, "getHandle");
         GameProfile targetProfile = (GameProfile) ReflectionUtil.executeMethod(targeted, "getProfile");
 
@@ -197,6 +198,7 @@ public final class SkinUtil {
         Object onlinePlayer = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
         Object playerConnection = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerConnection");
 
+
         Class<?> packetPlayOutPlayerInfo = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo");
         Class<?> enumPlayerInfoAction = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction");
 
@@ -225,8 +227,10 @@ public final class SkinUtil {
 
         Class<?> packetClass = ReflectionUtil.getClass("net.minecraft.server.{NMS}.Packet");
 
-        ReflectionUtil.executeMethod(playerConnection, "sendPacket", packetClass.cast(subtract));
-        ReflectionUtil.executeMethod(playerConnection, "sendPacket", packetClass.cast(add));
+        Method sendPacket = ReflectionUtil.getMethod(playerConnection.getClass(), "sendPacket", packetClass);
+
+        ReflectionUtil.executeMethod(playerConnection, sendPacket, subtract); //packetClass.cast(subtract)
+        ReflectionUtil.executeMethod(playerConnection, sendPacket, add); //packetClass.cast(add)
 
         Object worldField = ReflectionUtil.getFieldFromObject(onlinePlayer, "world");
         Object dimensionManager = ReflectionUtil.executeMethod(worldField, "getDimensionManager");
@@ -240,9 +244,11 @@ public final class SkinUtil {
         Object playerInteractManagerField = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerInteractManager");
         Object getGamemodeMethod = ReflectionUtil.executeMethod(playerInteractManagerField, "getGameMode");
 
-        Object respawn = ReflectionUtil.newInstanceFromClass("net.minecraft.server.{NMS}.PacketPlayOutRespawn", dimensionManager, getDimensionKeyMethod, getSeedMethod, getGamemodeMethod, getGamemodeMethod, false, false, true);
+        Constructor<?> respawnConstructor = ReflectionUtil.getClassConstructor("net.minecraft.server.{NMS}.PacketPlayOutRespawn", dimensionManager.getClass(), getDimensionKeyMethod.getClass(), long.class, getGamemodeMethod.getClass(), getGamemodeMethod.getClass(), boolean.class, boolean.class, boolean.class);
 
-        ReflectionUtil.executeMethod(playerConnection, "sendPacket", packetClass.cast(respawn));
+        Object respawn = ReflectionUtil.newInstanceFromClass(respawnConstructor, dimensionManager, getDimensionKeyMethod, getSeedMethod, getGamemodeMethod, getGamemodeMethod, false, false, true);
+
+        ReflectionUtil.executeMethod(playerConnection, sendPacket, respawn);
     }
 
     /*

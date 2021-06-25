@@ -46,6 +46,23 @@ public final class ReflectionUtil {
     }
 
     /**
+     * Wrapper method to get a method via its name
+     *
+     * @param clazz the class that contains the method
+     * @param methodName the name of the method
+     * @param args the data types of the arguments
+     * @return the method
+     */
+    public static Method getMethod(Class<?> clazz, String methodName, Class<?>... args) {
+        try {
+            return clazz.getMethod(methodName, args);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
      * Wrapper method to get a field via its name
      *
      * @param clazz the class that contains the field
@@ -59,6 +76,39 @@ public final class ReflectionUtil {
             e.printStackTrace();
             return null;
         }
+    }
+
+    /**
+     * Wrapper method to get a classes constructor
+     *
+     * @param clazz the class
+     * @param arguments the data types of the arguments
+     * @return the constructor
+     */
+    public static Constructor<?> getClassConstructor(Class<?> clazz, Class<?>... arguments) {
+        try {
+            return clazz.getDeclaredConstructor(arguments);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Wrapper method to get a classes constructor via its name
+     *
+     * @param className the name of the class
+     * @param arguments the data types of the arguments
+     * @return the constructor
+     */
+    public static Constructor<?> getClassConstructor(String className, Class<?>... arguments) {
+        Class<?> clazz = ReflectionUtil.getClass(className);
+
+        if (clazz == null) {
+            return null;
+        }
+
+        return ReflectionUtil.getClassConstructor(clazz, arguments);
     }
 
     /**
@@ -86,21 +136,29 @@ public final class ReflectionUtil {
      * @return a new instance of the class
      */
     public static Object newInstanceFromClass(Class<?> clazz, Object... args) {
-        List<Class<?>> classes = new ArrayList<>();
+        Class<?>[] classes = new Class[args.length];
 
-        for (Object arg : args) {
-            classes.add(arg.getClass());
+        for (int i = 0; i < args.length; i++) {
+            classes[i] = args[i].getClass();
         }
 
-        Constructor<?> constructor;
+        Constructor<?> constructor = ReflectionUtil.getClassConstructor(clazz, classes);
 
-        try {
-            constructor = clazz.getDeclaredConstructor(classes.toArray(new Class[]{}));
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+        if (constructor == null) {
             return null;
         }
 
+        return ReflectionUtil.newInstanceFromClass(constructor, args);
+    }
+
+    /**
+     * Wrapper method to get a new instance of a class
+     *
+     * @param constructor the constructor of the class
+     * @param args the arguments of the constructor
+     * @return a new instance of the class
+     */
+    public static Object newInstanceFromClass(Constructor<?> constructor, Object... args) {
         try {
             return constructor.newInstance(args);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
@@ -135,21 +193,30 @@ public final class ReflectionUtil {
      * @return the return value of the method
      */
     public static Object executeMethod(Object object, String methodName, Object... args) {
-        List<Class<?>> classes = new ArrayList<>();
+        Class<?>[] classes = new Class[args.length];
 
-        for (Object arg : args) {
-            classes.add(arg.getClass());
+        for (int i = 0; i < args.length; i++) {
+            classes[i] = args[i].getClass();
         }
 
-        Method method;
+        Method method = ReflectionUtil.getMethod(object.getClass(), methodName, classes);
 
-        try {
-            method = object.getClass().getMethod(methodName, classes.toArray(new Class[]{}));
-        } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+        if (method == null) {
             return null;
         }
 
+        return ReflectionUtil.executeMethod(object, method, args);
+    }
+
+    /**
+     * Wrapper method to execute a method reflection call
+     *
+     * @param object the object that has the method you want to execute
+     * @param method the method
+     * @param args the arguments to be passed in the method
+     * @return the return value of the method
+     */
+    public static Object executeMethod(Object object, Method method, Object... args) {
         method.setAccessible(true);
 
         try {
