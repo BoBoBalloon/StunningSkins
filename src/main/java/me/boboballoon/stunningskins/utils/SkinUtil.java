@@ -8,7 +8,9 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import me.boboballoon.stunningskins.StunningSkins;
+import me.boboballoon.stunningskins.listeners.PlayerDeathListener;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -17,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,7 +29,8 @@ import java.util.UUID;
 public final class SkinUtil {
     public static Map<UUID, Property> SKINNED_PLAYERS = new HashMap<>();
 
-    private SkinUtil() {}
+    private SkinUtil() {
+    }
 
     /**
      * A method used to set the skin of a player using another players username as a method of retrieving a skin (always fire async)
@@ -192,46 +194,50 @@ public final class SkinUtil {
                 current.hidePlayer(plugin, player);
                 current.showPlayer(plugin, player);
             }
-        });
 
-        Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(player);
-        Object onlinePlayer = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
-        Object playerConnection = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerConnection");
+            Object craftPlayer = ReflectionUtil.getClass("org.bukkit.craftbukkit.{NMS}.entity.CraftPlayer").cast(player);
+            Object onlinePlayer = ReflectionUtil.executeMethod(craftPlayer, "getHandle");
+            Object playerConnection = ReflectionUtil.getFieldFromObject(onlinePlayer, "playerConnection");
 
+            Class<?> packetPlayOutPlayerInfo = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo");
+            Class<?> enumPlayerInfoAction = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction");
 
-        Class<?> packetPlayOutPlayerInfo = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo");
-        Class<?> enumPlayerInfoAction = ReflectionUtil.getClass("net.minecraft.server.{NMS}.PacketPlayOutPlayerInfo$EnumPlayerInfoAction");
+            Object removePlayerField;
+            try {
+                removePlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "REMOVE_PLAYER").get(null);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+                return;
+            }
 
-        Object removePlayerField;
-        try {
-            removePlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "REMOVE_PLAYER").get(null);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-            return;
-        }
+            Object playerArray = Array.newInstance(onlinePlayer.getClass(), 1);
+            Array.set(playerArray, 0, onlinePlayer);
 
-        Object playerArray = Array.newInstance(onlinePlayer.getClass(), 1);
-        Array.set(playerArray, 0, onlinePlayer);
+            Object subtract = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, removePlayerField, playerArray);
 
-        Object subtract = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, removePlayerField, playerArray);
+            Object addPlayerField;
+            try {
+                addPlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "ADD_PLAYER").get(null);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+                return;
+            }
 
-        Object addPlayerField;
-        try {
-            addPlayerField = ReflectionUtil.getField(enumPlayerInfoAction, "ADD_PLAYER").get(null);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-            return;
-        }
+            Object add = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, addPlayerField, playerArray);
 
-        Object add = ReflectionUtil.newInstanceFromClass(packetPlayOutPlayerInfo, addPlayerField, playerArray);
+            Class<?> packetClass = ReflectionUtil.getClass("net.minecraft.server.{NMS}.Packet");
 
-        Class<?> packetClass = ReflectionUtil.getClass("net.minecraft.server.{NMS}.Packet");
+            Method sendPacket = ReflectionUtil.getMethod(playerConnection.getClass(), "sendPacket", packetClass);
 
-        Method sendPacket = ReflectionUtil.getMethod(playerConnection.getClass(), "sendPacket", packetClass);
+            ReflectionUtil.executeMethod(playerConnection, sendPacket, subtract); //packetClass.cast(subtract)
+            ReflectionUtil.executeMethod(playerConnection, sendPacket, add); //packetClass.cast(add)
 
-        ReflectionUtil.executeMethod(playerConnection, sendPacket, subtract); //packetClass.cast(subtract)
-        ReflectionUtil.executeMethod(playerConnection, sendPacket, add); //packetClass.cast(add)
-
+            Location location = player.getLocation().clone();
+            PlayerDeathListener.WATCHED_PLAYERS.add(player.getUniqueId());
+            player.setHealth(0);
+            player.spigot().respawn();
+            player.teleport(location);
+        /*
         Object worldField = ReflectionUtil.getFieldFromObject(onlinePlayer, "world");
         Object dimensionManager = ReflectionUtil.executeMethod(worldField, "getDimensionManager");
 
@@ -249,6 +255,8 @@ public final class SkinUtil {
         Object respawn = ReflectionUtil.newInstanceFromClass(respawnConstructor, dimensionManager, getDimensionKeyMethod, getSeedMethod, getGamemodeMethod, getGamemodeMethod, false, false, true);
 
         ReflectionUtil.executeMethod(playerConnection, sendPacket, respawn);
+         */
+        });
     }
 
     /*

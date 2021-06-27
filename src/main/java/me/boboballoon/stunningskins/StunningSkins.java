@@ -4,6 +4,7 @@ import me.boboballoon.stunningskins.commands.ResetNameCommand;
 import me.boboballoon.stunningskins.commands.ResetSkinCommand;
 import me.boboballoon.stunningskins.commands.SetNameCommand;
 import me.boboballoon.stunningskins.commands.SetSkinCommand;
+import me.boboballoon.stunningskins.listeners.PlayerDeathListener;
 import me.boboballoon.stunningskins.listeners.PlayerQuitListener;
 import me.boboballoon.stunningskins.utils.NameUtil;
 import org.bukkit.Bukkit;
@@ -28,7 +29,7 @@ public final class StunningSkins extends JavaPlugin {
         Bukkit.getPluginCommand("setname").setExecutor(new SetNameCommand());
         Bukkit.getPluginCommand("resetname").setExecutor(new ResetNameCommand());
 
-        this.registerListeners(new PlayerQuitListener());
+        this.registerListeners(new PlayerQuitListener(), new PlayerDeathListener());
     }
 
     @Override
